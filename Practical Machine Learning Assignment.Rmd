@@ -1,0 +1,66 @@
+---
+output: pdf_document
+---
+#Practical Machine Learning Assignment: Writeup
+
+##1. Synopsis
+The goal of this project is to predict the manner in which people did the exercise, includes:
+
+- Create a report describing how to built the model;
+- how to use cross validation;
+- what I think the expected out of sample error is;
+- why I made these choices;
+- Finally use the prediction model to predict 20 different test cases.
+
+##2. Load the Caret Library and Set the Random Number Generator's Seed
+The purpose of setting the random number generator's seed is to ensure reproducibility.
+
+```{r echo=TRUE, results='hide'}
+library(caret)
+set.seed(1234)
+```
+
+##3. Pre-Processing of Data
+
+```{r echo=TRUE, results='hide'}
+rawData <- read.csv("pml-training.csv", na.strings=c("NA",""), strip.white=T)
+Totalna <- apply(rawData, 2, function(x) { sum(is.na(x)) })
+cleandata <- subset(rawData[, which(Totalna == 0)], select=c(roll_belt, pitch_forearm, yaw_belt, magnet_dumbbell_y, pitch_belt, magnet_dumbbell_z, roll_forearm, accel_dumbbell_y, roll_dumbbell, magnet_dumbbell_x,classe))
+```
+
+##4. Partition
+Set the training/testing partition using the training data set.
+
+```{r echo=TRUE}
+inTrain <- createDataPartition(cleandata$classe, p=0.7, list=F)
+training <- cleandata[inTrain,]
+testing <- cleandata[-inTrain,]
+```
+
+##5. Learning the Clasification Hypothesis using the Training Data
+
+###5.1 Training a Random Forest model.
+
+```{r echo=TRUE}
+#Fitting the Model
+ctrl <- trainControl(allowParallel=T, method="cv", number=4)
+modFit<-train(classe~.,data=training,method="rf",trControl=ctrl)
+#Visualizing the Model Results
+modFit
+```
+
+###5.2 Confusion matrix.
+
+```{r echo=TRUE}
+predictions<-predict(modFit,newdata=testing)
+confusionMatrix(predictions,testing$classe)
+```
+Its accuracy on the test set is 98.4%
+
+##6. Predictions
+
+```{r echo=TRUE}
+rawdata2 <- read.csv("pml-testing.csv", na.strings=c("NA",""), strip.white=T) 
+predictions2 <- predict(modFit, newdata=rawdata2)
+predictions2
+```
